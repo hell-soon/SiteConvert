@@ -26,7 +26,9 @@ export class ImagesService {
       for (const file of files) {
         const originalName = path.parse(file.originalname).name;
         const webpFileName = `${originalName}.webp`;
-        const webpBuffer = await sharp(file.buffer).webp({ quality: 75 }).toBuffer();
+        const webpBuffer = await sharp(file.buffer)
+          .webp({ quality: 75 })
+          .toBuffer();
         archive.append(webpBuffer, {
           name: webpFileName,
           date: new Date(), // Для одинаковых временных меток

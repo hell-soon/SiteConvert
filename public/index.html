@@ -74,77 +74,182 @@
                 background-color: #ccc;
                 cursor: not-allowed;
             }
+
+            .upload-area.dragover {
+                border-color: #2196f3;
+                background-color: #e3f2fd;
+            }
+
+            .preview-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .preview-item {
+                max-width: 150px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: #f9f9f9;
+            }
+
+            .preview-item img {
+                max-width: 100%;
+                height: auto;
+            }
+
+            #clearBtn {
+                background-color: #ff4444;
+                margin-left: 10px;
+            }
+
+            #clearBtn:hover {
+                background-color: #cc0000;
+            }
         </style>
     </head>
 
     <body>
         <div class="container">
             <h1>WebP Image Converter</h1>
+
+            <!-- Зона перетаскивания -->
             <div class="upload-area" id="dropZone">
-                <p>Перетащите изображение сюда или кликните для выбора</p>
-                <input type="file" id="fileInput" accept="image/*" multiple />
+                <p>Перетащите изображения сюда<br>или кликните для выбора</p>
+                <input type="file" id="fileInput" accept="image/*" multiple hidden>
             </div>
-            <img id="preview" class="preview">
-            <button id="convertBtn">Конвертировать в WebP</button>
+
+            <!-- Контейнер для превью -->
+            <div class="preview-container" id="previewContainer"></div>
+
+            <div class="button-group">
+                <button id="convertBtn">Конвертировать в WebP</button>
+                <button id="clearBtn">Очистить</button>
+            </div>
             <div id="result" class="result"></div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
         </div>
 
         <script>
-            // Изменяем обработчик для массива файлов
-            fileInput.addEventListener('change', (e) => {
-                const files = Array.from(e.target.files);
-                files.forEach(handleFile);
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const previewContainer = document.getElementById('previewContainer');
+            const convertBtn = document.getElementById('convertBtn');
+            const result = document.getElementById('result');
+            const progressBar = document.getElementById('progressBar');
+
+            // Исправленный обработчик кнопки очистки
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                const dataTransfer = new DataTransfer();
+                fileInput.files = dataTransfer.files; // Полная очистка файлов
+                previewContainer.innerHTML = '';
+                result.style.display = 'none';
+                progressBar.parentElement.style.display = 'none';
+                convertBtn.disabled = true;
             });
 
-            // Обновляем функцию handleFile для поддержки нескольких файлов
-            function handleFile(file) {
-                if (!file.type.startsWith('image/')) return;
+            // Единый обработчик для всех изменений файлов
+            function handleFiles(newFiles) {
+                const validFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'));
+                if (!validFiles.length) return;
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'preview';
-                    img.style.maxWidth = '200px';
-                    document.querySelector('.container').insertBefore(img, convertBtn);
-                };
-                reader.readAsDataURL(file);
+                // Обновляем FileList через DataTransfer
+                const existingFiles = Array.from(fileInput.files);
+                const dataTransfer = new DataTransfer();
+                existingFiles.forEach(f => dataTransfer.items.add(f));
+                validFiles.forEach(f => dataTransfer.items.add(f));
+                fileInput.files = dataTransfer.files;
+
+                // Создаем превью
+                validFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const item = document.createElement('div');
+                        item.className = 'preview-item';
+                        item.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview">
+                            <div>${file.name}</div>
+                        `;
+                        previewContainer.appendChild(item);
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                // Активируем кнопку конвертации
+                convertBtn.disabled = false;
             }
 
-            // Обновляем обработчик кнопки конвертации
+            // Обработчики перетаскивания
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // Обработчик выбора файлов через input
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // Обработчик клика по зоне загрузки
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Основной обработчик конвертации
             convertBtn.addEventListener('click', async () => {
                 const files = Array.from(fileInput.files);
-                console.log('Выбранные файлы:', files);
-                const formData = new FormData();
+                if (!files.length) return;
 
-                files.forEach((file, index) => {
-                    formData.append(`images`, file);
-                });
+                const formData = new FormData();
+                files.forEach(file => formData.append('images', file));
 
                 try {
                     convertBtn.disabled = true;
+                    progressBar.parentElement.style.display = 'block';
+
                     const response = await fetch('/images/upload', {
                         method: 'POST',
-                        body: formData,
+                        body: formData
                     });
 
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'converted_images.zip';
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                    } else {
-                        throw new Error('Ошибка при конвертации');
-                    }
+                    if (!response.ok) throw new Error('Ошибка конвертации');
+
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+
+                    // Создаем ссылку для скачивания
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'converted_images.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    URL.revokeObjectURL(url);
+                    result.className = 'result success';
+                    result.textContent = 'Конвертация успешна!';
+
                 } catch (error) {
                     result.className = 'result error';
-                    result.innerHTML = `Ошибка: ${error.message}`;
+                    result.textContent = `Ошибка: ${error.message}`;
                 } finally {
-                    result.style.display = 'block';
+                    progressBar.parentElement.style.display = 'none';
                     convertBtn.disabled = false;
+                    result.style.display = 'block';
                 }
             });
         </script>

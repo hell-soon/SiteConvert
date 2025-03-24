@@ -23,7 +23,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 5291;
+  const port = process.env.PORT ?? 5290;
 
   // Используем 0.0.0.0 для доступности в локальной сети
   await app.listen(port, '0.0.0.0', () => {

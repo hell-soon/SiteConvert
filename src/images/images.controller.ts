@@ -1,4 +1,10 @@
-import { Controller, Post, UseInterceptors, UploadedFiles, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
+  Res,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ImagesService } from './images.service';
 import { Response } from 'express';
@@ -17,9 +23,11 @@ export class ImagesController {
   constructor(private readonly imagesService: ImagesService) { }
 
   @Post('upload')
-  @UseInterceptors(FilesInterceptor('images', 20, {
-    limits: { fileSize: 1024 * 1024 * 50 }, // 50MB
-  }))
+  @UseInterceptors(
+    FilesInterceptor('images', 20, {
+      limits: { fileSize: 1024 * 1024 * 50 }, // 50MB
+    }),
+  )
   async uploadImages(
     @UploadedFiles() files: MulterFile[],
     @Res() res: Response,
@@ -29,7 +37,8 @@ export class ImagesController {
     }
 
     try {
-      const zipBuffer = await this.imagesService.convertMultipleToWebPAndZip(files);
+      const zipBuffer =
+        await this.imagesService.convertMultipleToWebPAndZip(files);
 
       res.header({
         'Content-Type': 'application/zip',
