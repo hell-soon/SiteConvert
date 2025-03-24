@@ -24,7 +24,29 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT ?? 5291;
-  await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+
+  // Используем 0.0.0.0 для доступности в локальной сети
+  await app.listen(port, '0.0.0.0', () => {
+    console.log(`Application is running on:`);
+    console.log(`- Local: http://localhost:${port}`);
+    console.log(`- Network: http://${getLocalIP()}:${port}`);
+  });
 }
+
+// Функция для получения локального IP-адреса
+function getLocalIP() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  for (const devName in interfaces) {
+    const iface = interfaces[devName];
+    for (const alias of iface) {
+      const { address, family, internal } = alias;
+      if (family === 'IPv4' && !internal) {
+        return address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
 bootstrap();
