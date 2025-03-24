@@ -3,5 +3,7 @@
 скачать nest --  npm i -g @nestjs/cli
 
 и дальше прописать 
+  ``
   npm i 
   nest start
+  ``
