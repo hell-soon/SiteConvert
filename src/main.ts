@@ -11,6 +11,11 @@ async function bootstrap() {
     index: 'index.html',
   });
 
+  // Добавьте эту строку для доступа к загруженным файлам
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+
   // Настройка CORS
   app.enableCors({
     origin: true,
@@ -18,7 +23,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 5291;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
 }

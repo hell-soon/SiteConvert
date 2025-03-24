@@ -1,8 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as sharp from 'sharp';
-import { promises as fs } from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import * as archiver from 'archiver';
 
 interface MulterFile {
   fieldname: string;
@@ -15,38 +14,26 @@ interface MulterFile {
 
 @Injectable()
 export class ImagesService {
-  private readonly uploadDir = 'uploads';
+  async convertMultipleToWebPAndZip(files: MulterFile[]): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const chunks: Buffer[] = [];
 
-  constructor() {
-    fs.mkdir(this.uploadDir, { recursive: true }).catch(console.error);
-  }
+      archive.on('data', (chunk) => chunks.push(chunk));
+      archive.on('end', () => resolve(Buffer.concat(chunks)));
+      archive.on('error', reject);
 
-  async convertToWebP(file: MulterFile) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
+      for (const file of files) {
+        const originalName = path.parse(file.originalname).name;
+        const webpFileName = `${originalName}.webp`;
+        const webpBuffer = await sharp(file.buffer).webp({ quality: 75 }).toBuffer();
+        archive.append(webpBuffer, {
+          name: webpFileName,
+          date: new Date(), // Для одинаковых временных меток
+        });
+      }
 
-    const filename = `${uuidv4()}.webp`;
-    const filepath = path.join(this.uploadDir, filename);
-
-    try {
-      await sharp(file.buffer).webp({ quality: 75 }).toFile(filepath);
-
-      return {
-        id: filename,
-        message: 'Image successfully converted to WebP',
-      };
-    } catch (error) {
-      throw new BadRequestException(error, 'Error processing image');
-    }
-  }
-
-  async getImage(id: string) {
-    try {
-      const filepath = path.join(this.uploadDir, id);
-      return await fs.readFile(filepath);
-    } catch (error) {
-      throw new BadRequestException(error, 'Image not found');
-    }
+      archive.finalize();
+    });
   }
 }
