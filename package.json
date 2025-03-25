@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "preinstall": "npm install --platform=linux --arch=x64 sharp",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -27,8 +28,6 @@
     "archiver": "^7.0.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "sharp": "^0.33.5",
-    "sqlite3": "^5.1.7",
     "typeorm": "^0.3.20",
     "uuid": "^11.0.3"
   },
@@ -54,6 +53,9 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
   },
   "jest": {
     "moduleFileExtensions": [
